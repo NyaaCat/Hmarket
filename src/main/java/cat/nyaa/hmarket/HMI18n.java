@@ -43,7 +43,9 @@ public class HMI18n extends LanguageRepository {
         Component component;
         if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
             component = itemStack.displayName();
-        }else if (itemStack.getItemMeta() instanceof SkullMeta && ((SkullMeta) itemStack.getItemMeta()).hasOwner()) {
+        } else if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasItemName()) {
+            component = itemStack.getItemMeta().itemName();
+        } else if (itemStack.getItemMeta() instanceof SkullMeta && ((SkullMeta) itemStack.getItemMeta()).hasOwner()) {
             var key = itemStack.getType().getItemTranslationKey();
             component = Component.translatable(key + ".named");
             component = ((TranslatableComponent)component).args(Component.text(((SkullMeta) itemStack.getItemMeta()).getOwningPlayer().getName()));
