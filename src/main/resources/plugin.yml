@@ -3,6 +3,8 @@ version: '${version}'
 main: cat.nyaa.hmarket.Hmarket
 api-version: 1.19
 prefix: Hmarket
+softdepend:
+  - UKit
 depend:
   - NyaaCore
   - ECore

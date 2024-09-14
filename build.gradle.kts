@@ -33,7 +33,7 @@ dependencies {
     // other nyaa plugins
     compileOnly("cat.nyaa:nyaacore:9.4")
     compileOnly("cat.nyaa:ecore:0.3.4")
-    compileOnly("cat.nyaa:ukit:1.7")
+    compileOnly("cat.nyaa:ukit:1.7.2")
     compileOnly("org.jetbrains:annotations:23.0.0")
     compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }

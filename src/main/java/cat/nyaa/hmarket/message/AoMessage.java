@@ -94,7 +94,7 @@ public class AoMessage {
                 if (ukitMessageEnabled) {
                     Bukkit.getAsyncScheduler().runNow(plugin, (task) -> {
                         try {
-                            UKitAPI.getAPIInstance().createLoginPush(playerId, message, HMI18n.format("info.message.sender_name"));
+                            UKitAPI.getAPIInstance().pushMessage(playerId, message, HMI18n.format("info.message.sender_name"));
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
                         }
