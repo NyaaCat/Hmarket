@@ -31,10 +31,11 @@ java {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiName")
     // other nyaa plugins
-    // compileOnly("cat.nyaa:nyaacore:9.10")
-    compileOnly(files("lib/nyaacore-9.10.jar"))
-    // compileOnly("cat.nyaa:ecore:0.3.5")
-    compileOnly(files("lib/ecore-0.3.5.jar"))
+    compileOnly("cat.nyaa:nyaacore:9.10")
+    compileOnly("cat.nyaa:ecore:0.3.5")
+    // for debug usage
+    // compileOnly(files("lib/nyaacore-9.10.jar"))
+    // compileOnly(files("lib/ecore-0.3.5.jar"))
     compileOnly("cat.nyaa:ukit:1.7.3")
     compileOnly("org.jetbrains:annotations:23.0.0")
     compileOnly("com.comphenix.protocol:ProtocolLib:5.3.0")
