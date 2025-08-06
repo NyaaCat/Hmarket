@@ -6,13 +6,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.0" // Adds runServer and runMojangMappedServer tasks for testing
 }
 
-val paperApiName = "1.21.1-R0.1-SNAPSHOT"
+val paperApiName = "1.21.8-R0.1-SNAPSHOT"
 
 group = "cat.nyaa"
-version = "0.10.1"
+version = "0.10.2"
 
 tasks.runServer {
-    minecraftVersion("1.21.1")
+    minecraftVersion("1.21.8")
 }
 
 repositories {
@@ -31,11 +31,13 @@ java {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiName")
     // other nyaa plugins
-    compileOnly("cat.nyaa:nyaacore:9.4")
-    compileOnly("cat.nyaa:ecore:0.3.4")
-    compileOnly("cat.nyaa:ukit:1.7.2")
+    // compileOnly("cat.nyaa:nyaacore:9.10")
+    compileOnly(files("lib/nyaacore-9.10.jar"))
+    // compileOnly("cat.nyaa:ecore:0.3.5")
+    compileOnly(files("lib/ecore-0.3.5.jar"))
+    compileOnly("cat.nyaa:ukit:1.7.3")
     compileOnly("org.jetbrains:annotations:23.0.0")
-    compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
+    compileOnly("com.comphenix.protocol:ProtocolLib:5.3.0")
 }
 
 publishing {
