@@ -90,20 +90,18 @@ public class AoMessage {
     public void sendMessageTo(UUID playerId, Component... messages) {
         var player = Bukkit.getPlayer(playerId);
         for (Component message : messages) {
-            if (player == null || !player.isOnline()) {
-                if (ukitMessageEnabled) {
-                    Bukkit.getAsyncScheduler().runNow(plugin, (task) -> {
-                        try {
-                            UKitAPI.getAPIInstance().pushMessage(playerId, message, HMI18n.format("info.message.sender_name"));
-                        } catch (SQLException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                } else {
-                    this.newOfflineMessage(playerId, JSON, ChatComponentUtils.toJson(message));
+            if (ukitMessageEnabled) {
+                try {
+                    UKitAPI.getAPIInstance().pushMessage(playerId, message, HMI18n.format("info.message.sender_name"));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             } else {
-                player.sendMessage(message);
+                if (player == null || !player.isOnline()) {
+                    this.newOfflineMessage(playerId, JSON, ChatComponentUtils.toJson(message));
+                } else {
+                    player.sendMessage(message);
+                }
             }
         }
     }
