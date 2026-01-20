@@ -6,13 +6,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.0" // Adds runServer and runMojangMappedServer tasks for testing
 }
 
-val paperApiName = "1.21.8-R0.1-SNAPSHOT"
+val paperApiName = "1.21.11-R0.1-SNAPSHOT"
 
 group = "cat.nyaa"
 version = "0.10.2"
 
 tasks.runServer {
-    minecraftVersion("1.21.8")
+    minecraftVersion("1.21.11")
 }
 
 repositories {
