@@ -38,6 +38,7 @@ info:
       shop:
         system: "&8G&7l&fobal Store"
         user: "&8%s&7's &fsign store"
+      confirm_purchase: "&8Confirm Purchase"
     element:
         loading: "&fLoading..."
         loading_description: "&7Please wait for a while..."
@@ -57,6 +58,11 @@ info:
         withdrawn_description: "&7You have withdrawn this item"
         action_needed: "&fError"
         action_needed_description: "&7Failed to buy. Reason: %s"
+        confirm: "&aConfirm"
+        confirm_description: "&7Click to confirm purchase"
+        cancel: "&cCancel"
+        cancel_description: "&7Click to cancel purchase"
+        purchase_amount: "&ePurchasing: x%s"
     item:
       buy_item: "Click to buy item"
       tax: "tax: %s%%, price including tax: %s"

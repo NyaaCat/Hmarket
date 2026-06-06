@@ -23,9 +23,9 @@ import static cat.nyaa.hmarket.api.data.MarketBuyResult.MarketBuyStatus.WITHDRAW
 
 public class HmarketShopView {
     private static final ItemStack iconLoading;
-    private static final ItemStack iconRefresh;
-    private static final ItemStack iconNextPage;
-    private static final ItemStack iconPrevPage;
+    static final ItemStack iconRefresh;
+    static final ItemStack iconNextPage;
+    static final ItemStack iconPrevPage;
     private static final ItemStack iconNotAvail; // which is bought by others
 
     private static final ItemStack iconEmptyStore;
@@ -93,12 +93,14 @@ public class HmarketShopView {
         iconError.setItemMeta(meta);
     }
 
-    private final IMarketAPI api;
+       private final IMarketAPI api;
     private final Inventory ui;
     private final Player viewOwner;
     private final List<ItemStack> items = new ArrayList<>();
     private final UUID viewShopID;
     private int currentPage = 1;
+    private ItemStack pendingItemStack;
+    private int pendingSlot;
 
 
     public HmarketShopView(Player viewOwner, UUID shopUniqueID, Component title) {
@@ -139,67 +141,57 @@ public class HmarketShopView {
         return currentPage > 1;
     }
 
-    public void onClick(Player player, InventoryAction action, ItemStack itemStack, int slot) {
-        if (itemStack.equals(iconNextPage)) {
-            if (hasNextPage())
-                currentPage++;
-            renderPage(currentPage);
-        } else if (itemStack.equals(iconPrevPage)) {
-            if (hasPrevPage())
-                currentPage--;
-            renderPage(currentPage);
-        } else if (itemStack.equals(iconRefresh)) {
-            reloadShopItems(viewShopID);
-        } else if (ShopItemDataUtils.checkIfIsWindowedItem(itemStack)) {
-            //buy item by checking action
-            //click to buy 1
-            //right click to buy a half
-            //shift click to buy all
-            final int amount = switch (action) {
-                case PICKUP_ALL -> 1;
-                case PICKUP_HALF -> {
-                    var half = itemStack.getAmount() / 2;
-                    yield half * 2 == itemStack.getAmount() ? half : half + 1;
+    public HmarketConfirmPurchaseView createConfirmView(Player player, InventoryAction action, ItemStack itemStack, int slot) {
+        //click to buy 1
+        //right click to buy a half
+        //shift click to buy all
+        final int amount = switch (action) {
+            case PICKUP_ALL -> 1;
+            case PICKUP_HALF -> {
+                var half = itemStack.getAmount() / 2;
+                yield half * 2 == itemStack.getAmount() ? half : half + 1;
+            }
+            case MOVE_TO_OTHER_INVENTORY -> itemStack.getAmount();
+            default -> -1;
+        };
+        if (amount == -1)
+            return null;
+        int marketItemId = ShopItemDataUtils.getMarketItemIDFromItemStack(itemStack);
+        pendingItemStack = itemStack.clone();
+        pendingSlot = slot;
+        ui.setItem(slot, iconPending);
+        return new HmarketConfirmPurchaseView(player, this, viewShopID, marketItemId, amount, slot, itemStack);
+    }
+
+    public void returnFromConfirmation(int shopSlot, ItemStack originalItem) {
+        setItemInCurrentPage(shopSlot, originalItem);
+        renderPage(currentPage);
+    }
+
+    public void onPurchaseResult(MarketBuyResult result, int shopSlot, int amount, ItemStack itemStack) {
+        switch (result.status()) {
+            case WITHDRAW_SUCCESS, SUCCESS -> {
+                if (amount == itemStack.getAmount()) {
+                    setItemInCurrentPage(shopSlot, result.status() == WITHDRAW_SUCCESS ? iconWithdrawn : iconPurchased);
+                } else {
+                    itemStack.setAmount(itemStack.getAmount() - amount);
+                    setItemInCurrentPage(shopSlot, itemStack);
                 }
-                case MOVE_TO_OTHER_INVENTORY -> itemStack.getAmount();
-                default -> -1;
-            };
-            if (amount == -1)
-                return;
-            ui.setItem(slot, iconPending);
-            Bukkit.getScheduler().runTaskAsynchronously(Hmarket.getInstance(), () -> {
-                MarketBuyResult result;
-                try {
-                    result = api.buy(player, viewShopID, ShopItemDataUtils.getMarketItemIDFromItemStack(itemStack), amount).get();
-                } catch (InterruptedException | ExecutionException e) {
-                    closeUiIfErrorOccurred(e);
-                    return;
+            }
+            case OUT_OF_STOCK, ITEM_NOT_FOUND -> {
+                setItemInCurrentPage(shopSlot, iconNotAvail);
+            }
+            case NOT_ENOUGH_MONEY, TASK_FAILED, TRANSACTION_ERROR, WRONG_MARKET, CANNOT_BUY_ITEM -> {
+                var icon = iconError.clone();
+                if (result.status() == NOT_ENOUGH_MONEY) {
+                    icon.lore(List.of(HMI18n.format("info.ui.market.not_enough_money")));
+                } else {
+                    icon.lore(List.of(HMI18n.format("info.ui.element.action_needed_description", result.status())));
                 }
-                switch (result.status()) {
-                    case WITHDRAW_SUCCESS, SUCCESS -> {
-                        if (amount == itemStack.getAmount()) {
-                            setItemInCurrentPage(slot, result.status() == WITHDRAW_SUCCESS ? iconWithdrawn : iconPurchased);
-                        } else {
-                            itemStack.setAmount(itemStack.getAmount() - amount);
-                            setItemInCurrentPage(slot, itemStack);
-                        }
-                    }
-                    case OUT_OF_STOCK, ITEM_NOT_FOUND -> {
-                        setItemInCurrentPage(slot, iconNotAvail);
-                    }
-                    case NOT_ENOUGH_MONEY, TASK_FAILED, TRANSACTION_ERROR, WRONG_MARKET, CANNOT_BUY_ITEM -> {
-                        var icon = iconError.clone();
-                        if (result.status() == NOT_ENOUGH_MONEY) {
-                            icon.lore(List.of(HMI18n.format("info.ui.market.not_enough_money")));
-                        } else {
-                            icon.lore(List.of(HMI18n.format("info.ui.element.action_needed_description", result.status())));
-                        }
-                        setItemInCurrentPage(slot, icon);
-                    }
-                }
-                renderPage(currentPage);
-            });
+                setItemInCurrentPage(shopSlot, icon);
+            }
         }
+        renderPage(currentPage);
     }
 
     private void setItemInCurrentPage(int slot, ItemStack itemStack) {
@@ -240,6 +232,22 @@ public class HmarketShopView {
 
     public Inventory getUi() {
         return ui;
+    }
+
+    public void onPageChange(InventoryAction action, ItemStack itemStack, int slot) {
+        if (itemStack.equals(iconNextPage)) {
+            if (hasNextPage())
+                currentPage++;
+            renderPage(currentPage);
+        } else if (itemStack.equals(iconPrevPage)) {
+            if (hasPrevPage())
+                currentPage--;
+            renderPage(currentPage);
+        }
+    }
+
+    public void onRefresh(InventoryAction action, ItemStack itemStack, int slot) {
+        reloadShopItems(viewShopID);
     }
 
 }
