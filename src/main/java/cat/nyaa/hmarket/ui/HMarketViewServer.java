@@ -1,6 +1,7 @@
 package cat.nyaa.hmarket.ui;
 
 import cat.nyaa.hmarket.HMI18n;
+import cat.nyaa.hmarket.ui.data.ShopItemDataUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,6 +21,7 @@ public class HMarketViewServer implements Listener {
     private final JavaPlugin pluginInstance;
 
     private final Map<UUID, HmarketShopView> viewMap = new HashMap<>();
+    private final Map<UUID, HmarketConfirmPurchaseView> confirmViewMap = new HashMap<>();
     private final Set<UUID> interactedPlayers = new HashSet<>();
 
     private final BukkitTask resetTask;
@@ -35,7 +37,13 @@ public class HMarketViewServer implements Listener {
     }
 
     public void createViewForPlayer(Player player, UUID marketId, Component title) {
+        confirmViewMap.remove(player.getUniqueId());
         viewMap.put(player.getUniqueId(), new HmarketShopView(player, marketId, title));
+    }
+
+    public void openConfirmViewForPlayer(Player player, HmarketConfirmPurchaseView confirmView) {
+        confirmViewMap.put(player.getUniqueId(), confirmView);
+        player.openInventory(confirmView.getUi());
     }
 
     public void destrutor() {
@@ -56,19 +64,50 @@ public class HMarketViewServer implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getClickedInventory() == null
-                || !viewMap.containsKey(event.getWhoClicked().getUniqueId()))
+        if (event.getClickedInventory() == null)
             return;
-        if (event.getInventory() != viewMap.get(event.getWhoClicked().getUniqueId()).getUi())
+        var playerId = event.getWhoClicked().getUniqueId();
+
+        // Handle confirmation view clicks first
+        if (confirmViewMap.containsKey(playerId)) {
+            var confirmView = confirmViewMap.get(playerId);
+            if (event.getInventory() == confirmView.getUi()) {
+                event.setCancelled(true);
+                var item = event.getCurrentItem();
+                if (item == null || item.getType().isAir()) return;
+                if (interactedPlayers.contains(playerId))
+                    return;
+                confirmView.onClick((Player) event.getWhoClicked(), item, event.getSlot());
+                interactedPlayers.add(playerId);
+                return;
+            }
+        }
+
+        // Handle shop view clicks
+        if (!viewMap.containsKey(playerId))
             return;
-        if (event.getClickedInventory() == viewMap.get(event.getWhoClicked().getUniqueId()).getUi()) {
+        if (event.getInventory() != viewMap.get(playerId).getUi())
+            return;
+        if (event.getClickedInventory() == viewMap.get(playerId).getUi()) {
             event.setCancelled(true);
             var item = event.getCurrentItem();
             if (item == null || item.getType().isAir()) return;
-            if (interactedPlayers.contains(event.getWhoClicked().getUniqueId()))
+            if (interactedPlayers.contains(playerId))
                 return; //can interact with ui only once per tick
-            viewMap.get(event.getWhoClicked().getUniqueId()).onClick((Player) event.getWhoClicked(), event.getAction(), item, event.getSlot());
-            interactedPlayers.add(event.getWhoClicked().getUniqueId());
+            var shopView = viewMap.get(playerId);
+            if (item.equals(HmarketShopView.iconNextPage)) {
+                shopView.onPageChange(event.getAction(), item, event.getSlot());
+            } else if (item.equals(HmarketShopView.iconPrevPage)) {
+                shopView.onPageChange(event.getAction(), item, event.getSlot());
+            } else if (item.equals(HmarketShopView.iconRefresh)) {
+                shopView.onRefresh(event.getAction(), item, event.getSlot());
+            } else if (ShopItemDataUtils.checkIfIsWindowedItem(item)) {
+                var confirmView = shopView.createConfirmView((Player) event.getWhoClicked(), event.getAction(), item, event.getSlot());
+                if (confirmView != null) {
+                    openConfirmViewForPlayer((Player) event.getWhoClicked(), confirmView);
+                }
+            }
+            interactedPlayers.add(playerId);
         }
         if (event.getClickedInventory() == event.getWhoClicked().getInventory()) {
             if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
@@ -96,14 +135,26 @@ public class HMarketViewServer implements Listener {
 
     @EventHandler
     public void onCloseInventory(InventoryCloseEvent event) {
-        if (viewMap.containsKey(event.getPlayer().getUniqueId()))
-            if (event.getInventory() == viewMap.get(event.getPlayer().getUniqueId()).getUi()) {
-                viewMap.remove(event.getPlayer().getUniqueId());
+        var playerId = event.getPlayer().getUniqueId();
+        if (confirmViewMap.containsKey(playerId)) {
+            if (event.getInventory() == confirmViewMap.get(playerId).getUi()) {
+                confirmViewMap.remove(playerId);
+                // When closed via X button, return to shop view
+                if (viewMap.containsKey(playerId)) {
+                    event.getPlayer().openInventory(viewMap.get(playerId).getUi());
+                }
+            }
+            return;
+        }
+        if (viewMap.containsKey(playerId))
+            if (event.getInventory() == viewMap.get(playerId).getUi()) {
+                viewMap.remove(playerId);
             }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+        confirmViewMap.remove(event.getPlayer().getUniqueId());
         viewMap.remove(event.getPlayer().getUniqueId());
     }
 
