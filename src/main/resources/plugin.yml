@@ -1,7 +1,7 @@
 name: Hmarket
 version: '${version}'
 main: cat.nyaa.hmarket.Hmarket
-api-version: 1.19
+api-version: ${apiVersion}
 prefix: Hmarket
 softdepend:
   - UKit

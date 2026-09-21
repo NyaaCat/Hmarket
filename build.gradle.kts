@@ -1,18 +1,18 @@
-import org.gradle.kotlin.dsl.runServer
-
 plugins {
     `java-library`
     `maven-publish`
-    id("xyz.jpenilla.run-paper") version "2.3.0" // Adds runServer and runMojangMappedServer tasks for testing
+    id("xyz.jpenilla.run-paper") version "3.0.2" // Adds runServer and runMojangMappedServer tasks for testing
 }
 
-val paperApiName = "1.21.11-R0.1-SNAPSHOT"
+// Paper coordinates for Minecraft/Pewpew 26.2, discovered from official metadata.
+val paperApiName = "26.2.build.123-stable"
+val mcApiVersion = "26.2"
 
 group = "cat.nyaa"
-version = "0.10.2"
+version = "0.10.3"
 
 tasks.runServer {
-    minecraftVersion("1.21.11")
+    minecraftVersion(mcApiVersion)
 }
 
 repositories {
@@ -23,7 +23,7 @@ repositories {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
     withJavadocJar()
     withSourcesJar()
 }
@@ -31,14 +31,14 @@ java {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiName")
     // other nyaa plugins
-    compileOnly("cat.nyaa:nyaacore:9.10")
-    compileOnly("cat.nyaa:ecore:0.3.5")
+    compileOnly("cat.nyaa:nyaacore:9.12")
+    compileOnly("cat.nyaa:ecore:0.3.6")
     // for debug usage
     // compileOnly(files("lib/nyaacore-9.10.jar"))
     // compileOnly(files("lib/ecore-0.3.5.jar"))
-    compileOnly("cat.nyaa:ukit:1.7.3")
-    compileOnly("org.jetbrains:annotations:23.0.0")
-    compileOnly("com.comphenix.protocol:ProtocolLib:5.3.0")
+    compileOnly("cat.nyaa:ukit:1.7.5")
+    compileOnly("org.jetbrains:annotations:26.1.0")
+    compileOnly("com.comphenix.protocol:ProtocolLib:5.4.0-SNAPSHOT")
 }
 
 publishing {
@@ -63,11 +63,12 @@ tasks {
     compileJava {
         options.compilerArgs.add("-Xlint:deprecation")
         options.encoding = "UTF-8"
+        options.release.set(25)
     }
 
     processResources {
         filesMatching("**/plugin.yml") {
-            expand("version" to project.version)
+            expand("version" to project.version, "apiVersion" to mcApiVersion)
         }
     }
 
@@ -76,10 +77,11 @@ tasks {
         if (javadocPath != null) setDestinationDir(file("${javadocPath}/${rootProject.name.lowercase()}-${project.version}"))
 
         (options as StandardJavadocDocletOptions).apply {
-            links("https://docs.oracle.com/en/java/javase/17/docs/api/")
-            links("https://hub.spigotmc.org/javadocs/spigot/")
-            links("https://guava.dev/releases/21.0/api/docs/")
-            links("https://ci.md-5.net/job/BungeeCord/ws/chat/target/apidocs/")
+            // ci.md-5.net/job/BungeeCord/... and guava 21.0 no longer serve an element-list,
+            // which makes the javadoc task fail outright. Point at the live locations instead.
+            links("https://docs.oracle.com/en/java/javase/25/docs/api/")
+            links("https://jd.papermc.io/paper/26.2/")
+            links("https://guava.dev/releases/33.6.0-jre/api/docs/")
 
             locale = "en_US"
             encoding = "UTF-8"

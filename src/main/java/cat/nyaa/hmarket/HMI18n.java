@@ -48,7 +48,8 @@ public class HMI18n extends LanguageRepository {
         } else if (itemStack.getItemMeta() instanceof SkullMeta && ((SkullMeta) itemStack.getItemMeta()).hasOwner()) {
             var key = itemStack.getType().getItemTranslationKey();
             component = Component.translatable(key + ".named");
-            component = ((TranslatableComponent)component).args(Component.text(((SkullMeta) itemStack.getItemMeta()).getOwningPlayer().getName()));
+            // Adventure 5 (Paper 26.2) removed the deprecated TranslatableComponent#args; arguments() is the replacement.
+            component = ((TranslatableComponent) component).arguments(Component.text(((SkullMeta) itemStack.getItemMeta()).getOwningPlayer().getName()));
         }else{
             component = Component.translatable(Objects.requireNonNull(itemStack.getType().getItemTranslationKey()));
         }
